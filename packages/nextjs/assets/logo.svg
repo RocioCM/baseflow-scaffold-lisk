@@ -1,0 +1,22 @@
+<svg width="200" height="200" viewBox="0 0 200 200">
+  <!-- Wave Base -->
+  <path fill="url(#gradient)" d="M0,100 C50,50 150,150 200,100 L200,200 L0,200 Z">
+    <animate attributeName="d" values="M0,100 C50,50 150,150 200,100; M0,100 C50,150 150,50 200,100" dur="5s" repeatCount="indefinite"/>
+  </path>
+  
+  <!-- AI Orb -->
+  <circle cx="140" cy="80" r="25" fill="none" stroke="url(#purpleGlow)" stroke-width="2">
+    <path fill="white" fill-opacity="0.2" d="M140,60 C145,65 145,75 140,80 C135,75 135,65 140,60 Z"/>
+  </circle>
+  
+  <!-- Gradient Definitions -->
+  <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+    <stop offset="0%" stop-color="#0052FF"/>
+    <stop offset="100%" stop-color="#6E00FF"/>
+  </linearGradient>
+  
+  <radialGradient id="purpleGlow" cx="50%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#6E00FF"/>
+    <stop offset="100%" stop-color="#0052FF" stop-opacity="0"/>
+  </radialGradient>
+</svg>
