@@ -8,23 +8,27 @@ import { MetricsWidget } from "./widgets/MetricsWidget";
 import { MiniAppWidget } from "./widgets/MiniAppWidget";
 import { WalletWidget } from "./widgets/WalletWidget";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useBaseFlow } from "~~/hooks/useBaseFlow";
 
 export function Dashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const baseFlowHook = useBaseFlow();
+  const { metrics, loading } = baseFlowHook;
+
   const renderContent = () => {
     switch (activeTab) {
       case "sales":
-        return <SalesAgent />;
+        return <SalesAgent baseFlow={baseFlowHook} />;
       case "inventory":
-        return <InventoryAgent />;
+        return <InventoryAgent baseFlow={baseFlowHook} />;
       case "marketing":
         return <MarketingAgent />;
       default:
         return (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
-            <MetricsWidget />
+            <MetricsWidget metrics={metrics} loading={loading} />
             <MiniAppWidget />
-            <WalletWidget />
+            <WalletWidget metrics={metrics} loading={loading} />
           </div>
         );
     }

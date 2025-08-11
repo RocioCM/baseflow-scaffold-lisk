@@ -1,27 +1,87 @@
-import React from "react";
+import React, { useState } from "react";
 import { AlertTriangle, BarChart3, TrendingUp } from "lucide-react";
 
-export function InventoryAgent() {
+interface InventoryAgentProps {
+  baseFlow: {
+    updateInventory: (itemId: string, quantity: number, price: string) => Promise<void>;
+    loading: boolean;
+    error: string | null;
+  };
+}
+
+export function InventoryAgent({ baseFlow }: InventoryAgentProps) {
+  const [reorderingItems, setReorderingItems] = useState<Set<string>>(new Set());
+  const [message, setMessage] = useState("");
+
   const lowStockItems = [
     {
-      id: "1",
+      id: "tshirt-black-l",
       name: "Black T-shirt (L)",
       stock: 3,
       reorderPoint: 5,
+      price: "25.00",
+      reorderQuantity: 20,
     },
     {
-      id: "2",
+      id: "stickers-logo",
       name: "Logo Stickers",
       stock: 10,
       reorderPoint: 20,
+      price: "2.50",
+      reorderQuantity: 50,
     },
     {
-      id: "3",
+      id: "hoodie-m",
       name: "Hoodie (M)",
       stock: 2,
       reorderPoint: 5,
+      price: "45.00",
+      reorderQuantity: 15,
     },
   ];
+
+  const handleReorderItem = async (item: any) => {
+    try {
+      setReorderingItems(prev => new Set([...prev, item.id]));
+
+      // Update inventory with reorder quantity
+      await baseFlow.updateInventory(item.id, item.stock + item.reorderQuantity, item.price);
+
+      setMessage(`Successfully reordered ${item.reorderQuantity} units of ${item.name}`);
+
+      // Clear message after 3 seconds
+      setTimeout(() => setMessage(""), 3000);
+    } catch (error) {
+      console.error("Failed to reorder item:", error);
+      setMessage(`Failed to reorder ${item.name}. Please try again.`);
+      setTimeout(() => setMessage(""), 3000);
+    } finally {
+      setReorderingItems(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(item.id);
+        return newSet;
+      });
+    }
+  };
+
+  const handleReorderAll = async () => {
+    try {
+      setReorderingItems(new Set(lowStockItems.map(item => item.id)));
+
+      for (const item of lowStockItems) {
+        await baseFlow.updateInventory(item.id, item.stock + item.reorderQuantity, item.price);
+      }
+
+      setMessage("Successfully reordered all low stock items!");
+      setTimeout(() => setMessage(""), 3000);
+    } catch (error) {
+      console.error("Failed to reorder all items:", error);
+      setMessage("Failed to reorder all items. Please try again.");
+      setTimeout(() => setMessage(""), 3000);
+    } finally {
+      setReorderingItems(new Set());
+    }
+  };
   const topSellingItems = [
     {
       id: "1",
@@ -48,8 +108,16 @@ export function InventoryAgent() {
       trend: "stable",
     },
   ];
+
   return (
     <div className="p-6">
+      {/* Success/Error Message */}
+      {message && (
+        <div className="mb-4 p-3 rounded-md bg-blue-50 border border-blue-200">
+          <p className="text-sm text-blue-800">{message}</p>
+        </div>
+      )}
+
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Inventory Agent</h1>
         <p className="text-gray-600">Your AI assistant for stock management and demand forecasting</p>
@@ -116,7 +184,13 @@ export function InventoryAgent() {
                 <AlertTriangle size={18} className="mr-2 text-orange-500" />
                 Low Stock Alert
               </h2>
-              <button className="text-sm text-blue-600 hover:underline">Reorder All</button>
+              <button
+                onClick={handleReorderAll}
+                disabled={baseFlow.loading || reorderingItems.size > 0}
+                className="text-sm text-blue-600 hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {reorderingItems.size > 0 ? "Reordering..." : "Reorder All"}
+              </button>
             </div>
             <div className="divide-y divide-gray-200">
               {lowStockItems.map(item => (
@@ -127,8 +201,12 @@ export function InventoryAgent() {
                   </div>
                   <div className="text-right">
                     <p className="font-medium text-orange-500">{item.stock} left</p>
-                    <button className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200">
-                      Reorder
+                    <button
+                      onClick={() => handleReorderItem(item)}
+                      disabled={baseFlow.loading || reorderingItems.has(item.id)}
+                      className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded hover:bg-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {reorderingItems.has(item.id) ? "Reordering..." : "Reorder"}
                     </button>
                   </div>
                 </div>

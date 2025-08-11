@@ -1,30 +1,78 @@
-import React from "react";
-import { MessageSquare, ShoppingBag } from "lucide-react";
+import React, { useState } from "react";
+import { MessageSquare, Plus, ShoppingBag } from "lucide-react";
 
-export function SalesAgent() {
+interface SalesAgentProps {
+  baseFlow: {
+    createInvoice: (customer: string, amount: string, dueDate: number, metadata: string) => Promise<void>;
+    loading: boolean;
+    error: string | null;
+  };
+}
+
+export function SalesAgent({ baseFlow }: SalesAgentProps) {
+  const [showCreateInvoice, setShowCreateInvoice] = useState(false);
+  const [message, setMessage] = useState("");
+  const [invoiceForm, setInvoiceForm] = useState({
+    customer: "",
+    amount: "",
+    description: "",
+  });
+
+  const handleCreateInvoice = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!invoiceForm.customer || !invoiceForm.amount) {
+      setMessage("Please fill in all required fields");
+      return;
+    }
+
+    try {
+      // Due date: 30 days from now
+      const dueDate = Math.floor(Date.now() / 1000) + 30 * 24 * 60 * 60;
+
+      await baseFlow.createInvoice(
+        invoiceForm.customer,
+        invoiceForm.amount,
+        dueDate,
+        invoiceForm.description || `Invoice for ${invoiceForm.customer}`,
+      );
+
+      setMessage(`Invoice for $${invoiceForm.amount} created successfully for ${invoiceForm.customer}`);
+      setInvoiceForm({ customer: "", amount: "", description: "" });
+      setShowCreateInvoice(false);
+
+      // Clear message after 3 seconds
+      setTimeout(() => setMessage(""), 3000);
+    } catch (error) {
+      console.error("Failed to create invoice:", error);
+      setMessage("Failed to create invoice. Please try again.");
+      setTimeout(() => setMessage(""), 3000);
+    }
+  };
   const recentOrders = [
     {
       id: "1",
       customer: "@alex",
       items: "2 T-shirts",
-      total: "0.015 ETH",
+      total: "50.00",
       status: "Paid",
     },
     {
       id: "2",
       customer: "@sarah",
       items: "1 Hoodie",
-      total: "0.025 ETH",
+      total: "45.00",
       status: "Processing",
     },
     {
       id: "3",
       customer: "@mike",
       items: "3 Stickers",
-      total: "0.005 ETH",
+      total: "7.50",
       status: "Shipped",
     },
   ];
+
   const customerMessages = [
     {
       id: "1",
@@ -45,12 +93,90 @@ export function SalesAgent() {
       time: "1h ago",
     },
   ];
+
   return (
     <div className="p-6">
+      {/* Success/Error Message */}
+      {message && (
+        <div className="mb-4 p-3 rounded-md bg-blue-50 border border-blue-200">
+          <p className="text-sm text-blue-800">{message}</p>
+        </div>
+      )}
+
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Sales Agent</h1>
-        <p className="text-gray-600">Your AI assistant for orders, invoices, and customer service</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">Sales Agent</h1>
+            <p className="text-gray-600">Your AI assistant for orders, invoices, and customer service</p>
+          </div>
+          <button
+            onClick={() => setShowCreateInvoice(!showCreateInvoice)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center"
+          >
+            <Plus size={16} className="mr-2" />
+            Create Invoice
+          </button>
+        </div>
       </div>
+
+      {/* Create Invoice Form */}
+      {showCreateInvoice && (
+        <div className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Create New Invoice</h3>
+          <form onSubmit={handleCreateInvoice} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Customer Address</label>
+              <input
+                type="text"
+                placeholder="0x... or customer@example.com"
+                value={invoiceForm.customer}
+                onChange={e => setInvoiceForm(prev => ({ ...prev, customer: e.target.value }))}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Amount (USDC)</label>
+              <input
+                type="number"
+                step="0.01"
+                placeholder="25.00"
+                value={invoiceForm.amount}
+                onChange={e => setInvoiceForm(prev => ({ ...prev, amount: e.target.value }))}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+              <input
+                type="text"
+                placeholder="2x T-shirts, size L"
+                value={invoiceForm.description}
+                onChange={e => setInvoiceForm(prev => ({ ...prev, description: e.target.value }))}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div className="flex space-x-3">
+              <button
+                type="submit"
+                disabled={baseFlow.loading}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {baseFlow.loading ? "Creating..." : "Create Invoice"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCreateInvoice(false)}
+                className="bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Chat Interface */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
@@ -66,7 +192,7 @@ export function SalesAgent() {
                 <ul className="list-disc pl-5 mt-1 text-sm">
                   <li>5 new orders overnight</li>
                   <li>2 customers waiting for responses</li>
-                  <li>Revenue: 0.15 ETH (≈$300)</li>
+                  <li>Revenue: $102.50 USDC</li>
                 </ul>
                 What would you like me to help with today?
               </div>
@@ -74,20 +200,20 @@ export function SalesAgent() {
             <div className="mb-3 text-right">
               <p className="text-xs text-gray-500 mb-1">You</p>
               <div className="bg-gray-200 p-2 rounded-md inline-block text-gray-800">
-                Process order for @customer - 2 t-shirts
+                Create an invoice for @customer - 2 t-shirts for $50
               </div>
             </div>
             <div className="mb-3">
               <p className="text-xs text-gray-500 mb-1">AI Assistant</p>
               <div className="bg-blue-50 p-2 rounded-md text-gray-800">
-                Processing order for @customer:
+                Invoice created for @customer:
                 <br />
-                - 2× T-shirts at 0.005 ETH each
+                - 2× T-shirts = $50.00 USDC
                 <br />
-                - Total: 0.01 ETH
+                - Due: 30 days
                 <br />
                 <br />
-                Payment link generated and sent via Farcaster DM.
+                Smart contract invoice deployed! Customer can pay directly on-chain.
                 <br />
                 I&lsquo;ll notify you when payment is received.
               </div>
@@ -121,7 +247,7 @@ export function SalesAgent() {
                     <p className="text-sm text-gray-600">{order.items}</p>
                   </div>
                   <div className="text-right">
-                    <p className="font-medium">{order.total}</p>
+                    <p className="font-medium">${order.total}</p>
                     <p
                       className={`text-sm ${
                         order.status === "Paid"
